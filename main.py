@@ -15,4 +15,4 @@ for filename in os.listdir('./cogs'):
     if filename.endswith('.py'):
         client.load_extension(f'cogs.{filename[:-3]}')
 
-client.run('ODk0MDcwNDgxODkwNzM0MTMy.YVkqBQ.JjNFiQ_kdzzMue3BtJ146516aHE')
+client.run('coloque o token dos eu boot')
