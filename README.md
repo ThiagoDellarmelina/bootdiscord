@@ -44,6 +44,109 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+## 🛠️ Observações
+
+- O bot precisa que o **`libopus`** esteja carregado corretamente para que o áudio funcione no Discord.
+- O `ffmpeg` precisa estar no caminho correto conforme especificado na variável `FFMPEG_PATH`.
+- Testado e funcionando perfeitamente em ambientes locais e Docker.
+
+---
+
+## 📄 Licença
+
+Este projeto é de uso livre, mantenha os créditos e contribua caso deseje adicionar novos recursos.
+
+
+### 🎧 Testar as bibliotecas diretamente pelo terminal
+
+#### 🔽 Baixar e converter um vídeo do YouTube para MP3:
+
+```bash
+yt-dlp -x --audio-format mp3 --ffmpeg-location "C:/projetos/bootdiscord/ffmpeg-2025-04-17-git-7684243fbe-full_build/bin" "<URL-DO-YOUTUBE>"
+```
+
+> 📌 Substitua `<URL-DO-YOUTUBE>` pelo link do vídeo que você deseja baixar.
+
+#### ▶️ Tocar o arquivo `teste.mp3` via terminal com FFplay:
+
+```bash
+ffplay -nodisp -autoexit "teste.mp3"
+```
+
+> Certifique-se de que o `teste.mp3` esteja na raiz do projeto e que o `ffplay` esteja no seu PATH ou indique o caminho completo para ele.
+
+## 🗂️ Estrutura Esperada da Pasta do FFmpeg
+
+Certifique-se de extrair corretamente os arquivos `.part01`, `.part02`, `.part03` do pacote do FFmpeg, e organizar a estrutura como abaixo:
+
+```
+ffmpeg-2025-04-17-git-7684243fbe-full_build
+├───bin
+│   ├── ffmpeg.exe
+│   ├── ffplay.exe
+│   └── ffprobe.exe
+├───doc
+└───presets
+```
+
+Para testar se os programas estão funcionando, execute os seguintes comandos no terminal:
+
+```bash
+ffmpeg -version
+ffplay -version
+ffprobe -version
+```
+
+> ✅ Se aparecerem informações sobre cada programa, está tudo funcionando corretamente!
+
+---
+
+## 🔧 Como adicionar FFmpeg ao PATH (opcional)
+
+Se quiser executar `ffmpeg`, `ffplay` e `ffprobe` de qualquer lugar no terminal, siga estes passos:
+
+### 🪟 Windows:
+
+1.1 Copie o caminho completo da pasta `bin`, por exemplo:
+
+```
+C:\projetos\bootdiscord\ffmpeg-2025-04-17-git-7684243fbe-full_build\bin
+```
+
+1.2 Vá em:
+   - Painel de Controle → Sistema e Segurança → Sistema
+   - Clique em **"Configurações avançadas do sistema"**
+   - Clique em **"Variáveis de Ambiente"**
+   - Em "Variáveis do sistema", localize **Path**, clique em **Editar**
+   - Clique em **Novo** e cole o caminho
+
+1.3. Clique em OK em todas as janelas e reinicie o terminal.
+
+---
+
+## 📦 Local dos arquivos FFmpeg fracionados
+
+Na raiz do projeto tem as partes `.part01`, `.part02`, `.part03` a partir dos seguintes links:
+
+- [ffmpeg-2025-part01](sandbox:/mnt/data/ffmpeg-2025-04-17-git-7684243fbe-full_build.part01)
+- [ffmpeg-2025-part02](sandbox:/mnt/data/ffmpeg-2025-04-17-git-7684243fbe-full_build.part02)
+- [ffmpeg-2025-part03](sandbox:/mnt/data/ffmpeg-2025-04-17-git-7684243fbe-full_build.part03)
+
+User o Winrar ou 7zip para decompactar e coloque o conteudo descompactado na pasta:
+
+- ffmpeg-2025-04-17-git-7684243fbe-full_build
+
+```
+ffmpeg-2025-04-17-git-7684243fbe-full_build
+├───bin
+│   ├── ffmpeg.exe
+│   ├── ffplay.exe
+│   └── ffprobe.exe
+├───doc
+└───presets
+```
+
+
 4. **Adicione um arquivo `.env` com seu token do bot**:
 
 ```env
@@ -56,8 +159,8 @@ FFMPEG_PATH=C:/caminho/para/ffmpeg.exe
 ```bash
 python main.py
 ```
-
 ---
+
 
 ## 🐧 Instalação Local (Linux)
 
@@ -157,33 +260,3 @@ __next
 
 ---
 
-## 🛠️ Observações
-
-- O bot precisa que o **`libopus`** esteja carregado corretamente para que o áudio funcione no Discord.
-- O `ffmpeg` precisa estar no caminho correto conforme especificado na variável `FFMPEG_PATH`.
-- Testado e funcionando perfeitamente em ambientes locais e Docker.
-
----
-
-## 📄 Licença
-
-Este projeto é de uso livre, mantenha os créditos e contribua caso deseje adicionar novos recursos.
-
-
-### 🎧 Testar as bibliotecas diretamente pelo terminal
-
-#### 🔽 Baixar e converter um vídeo do YouTube para MP3:
-
-```bash
-yt-dlp -x --audio-format mp3 --ffmpeg-location "C:/projetos/bootdiscord/ffmpeg-2025-04-17-git-7684243fbe-full_build/bin" "<URL-DO-YOUTUBE>"
-```
-
-> 📌 Substitua `<URL-DO-YOUTUBE>` pelo link do vídeo que você deseja baixar.
-
-#### ▶️ Tocar o arquivo `teste.mp3` via terminal com FFplay:
-
-```bash
-ffplay -nodisp -autoexit "teste.mp3"
-```
-
-> Certifique-se de que o `teste.mp3` esteja na raiz do projeto e que o `ffplay` esteja no seu PATH ou indique o caminho completo para ele.
