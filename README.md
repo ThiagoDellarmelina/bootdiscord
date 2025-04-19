@@ -213,7 +213,7 @@ python main.py
 2. **Construa e rode com Docker Compose**:
 
 ```bash
-docker-compose up --build
+docker-compose up -d --build
 ```
 
 > O container cuidará do ambiente e instalará tudo automaticamente.
