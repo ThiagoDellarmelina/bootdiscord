@@ -1,0 +1,34 @@
+# Ambiente virtual
+venv/
+ENV/
+env/
+
+# Arquivo de variáveis de ambiente
+.env
+
+# Arquivos do Python
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+
+# Arquivos de áudio
+#*.mp3
+*.wav
+*.ogg
+
+# yt-dlp cache
+.ytdl/
+
+# Diretórios de sistema
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+*.sock
+docker-compose.override.yml
+
+# VSCode settings (opcional)
+.vscode/

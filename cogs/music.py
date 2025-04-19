@@ -1,160 +1,150 @@
 import discord
 from discord.ext import commands
+import asyncio
+import os
+from yt_dlp import YoutubeDL
 
-from youtube_dl import YoutubeDL
+class Music(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.vc = None
+        self.queue = []
+        self.current_index = 0
 
-class music(commands.Cog):
-    def __init__(self, client):
-        self.client = client
-    
-        #all the music related stuff
-        self.is_playing = False
+        self.YDL_OPTIONS = {'format': 'bestaudio'}
+        self.FFMPEG_OPTIONS = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn'
+        }
 
-        # 2d array containing [song, channel]
-        self.music_queue = []
-        self.YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
-        self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-
-        self.vc = ""
-
-     #searching the item on youtube
-    def search_yt(self, item):
+    def search_yt(self, query):
         with YoutubeDL(self.YDL_OPTIONS) as ydl:
-            try: 
-                info = ydl.extract_info("ytsearch:%s" % item, download=False)['entries'][0]
-            except Exception: 
-                return False
+            try:
+                info = ydl.extract_info(f"ytsearch:{query}", download=False)['entries'][0]
+                return {'title': info['title'], 'source': info['url']}
+            except Exception as e:
+                print(f"[Erro na busca]: {e}")
+                return None
 
-        return {'source': info['formats'][0]['url'], 'title': info['title']}
+    async def connect_to_voice(self, ctx):
+        if not ctx.author.voice:
+            await ctx.send("⚠️ Você precisa estar em um canal de voz.")
+            return False
+        channel = ctx.author.voice.channel
+        if self.vc is None:
+            self.vc = await channel.connect()
+        elif self.vc.channel != channel:
+            await self.vc.move_to(channel)
+        return True
 
-    def play_next(self):
-        if len(self.music_queue) > 0:
-            self.is_playing = True
-
-            #get the first url
-            m_url = self.music_queue[0][0]['source']
-
-            #remove the first element as you are currently playing it
-            self.music_queue.pop(0)
-
-            self.vc.play(discord.FFmpegPCMAudio(m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next())
-        else:
-            self.is_playing = False
-
-    # infinite loop checking 
-    async def play_music(self):
-        if len(self.music_queue) > 0:
-            self.is_playing = True
-
-            m_url = self.music_queue[0][0]['source']
-            
-            #try to connect to voice channel if you are not already connected
-
-            if self.vc == "" or not self.vc.is_connected() or self.vc == None:
-                self.vc = await self.music_queue[0][1].connect()
-            else:
-                await self.vc.move_to(self.music_queue[0][1])
-            
-            print(self.music_queue)
-            #remove the first element as you are currently playing it
-            self.music_queue.pop(0)
-
-            self.vc.play(discord.FFmpegPCMAudio(m_url, **self.FFMPEG_OPTIONS), after=lambda e: self.play_next())
-        else:
-            self.is_playing = False
-            await self.vc.disconnect()
-
-    @commands.command(name="help",alisases=['ajuda'],help="Comando de ajuda")
-    async def help(self,ctx):
-        helptxt = ''
-        for command in self.client.commands:
-            helptxt += f'**{command}** - {command.help}\n'
-        embedhelp = discord.Embed(
-            colour = 1646116,#grey
-            title=f'Comandos do {self.client.user.name}',
-            description = helptxt+'\n[teste 1](https://youtu.be/YGx0xNHzjgE)'
-        )
-        embedhelp.set_thumbnail(url=self.client.user.avatar_url)
-        await ctx.send(embed=embedhelp)
-
-
-    @commands.command(name="play", help="Toca uma música do YouTube",aliases=['p','tocar'])
-    async def p(self, ctx, *args):
-        query = " ".join(args)
-        
-        try:
-            voice_channel = ctx.author.voice.channel
-        except:
-        #if voice_channel is None:
-            #you need to be connected so that the bot knows where to go
-            embedvc = discord.Embed(
-                colour= 1646116,#grey
-                description = 'Para tocar uma música, primeiro se conecte a um canal de voz.'
+    async def play_next(self, ctx=None):
+        if self.current_index < len(self.queue):
+            song = self.queue[self.current_index]
+            source = discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS)
+            self.vc.play(
+                source,
+                after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(), self.bot.loop)
             )
-            await ctx.send(embed=embedvc)
+            if ctx:
+                await ctx.send(f"▶️ Tocando agora: **{song['title']}**")
+            self.current_index += 1
+        else:
+            if ctx:
+                await ctx.send("📭 Fila finalizada.")
+
+    @commands.command()
+    async def play(self, ctx, *, query):
+        song = self.search_yt(query)
+        if not song:
+            await ctx.send("❌ Não consegui encontrar a música.")
             return
-        else:
-            song = self.search_yt(query)
-            if type(song) == type(True):
-                embedvc = discord.Embed(
-                    colour= 12255232,#red
-                    description = 'Algo deu errado! Tente mudar ou configurar a playlist/vídeo ou escrever o nome dele novamente!'
-                )
-                await ctx.send(embed=embedvc)
-            else:
-                embedvc = discord.Embed(
-                    colour= 32768,#green
-                    description = f"Você adicionou a música **{song['title']}** à fila!\n\n[ Acesse o projeto FJJAM ](http://www.fjjam.com)"
-                )
-                await ctx.send(embed=embedvc)
-                self.music_queue.append([song, voice_channel])
-                
-                if self.is_playing == False:
-                    await self.play_music()
 
-    @commands.command(name="queue", help="Mostra as atuais músicas da fila.",aliases=['q','fila'])
-    async def q(self, ctx):
-        retval = ""
-        for i in range(0, len(self.music_queue)):
-            retval += f'**{i+1} - **' + self.music_queue[i][0]['title'] + "\n"
+        self.queue.append(song)
+        await ctx.send(f"🎶 Adicionada à fila: **{song['title']}**")
 
-        print(retval)
-        if retval != "":
-            embedvc = discord.Embed(
-                colour= 12255232,
-                description = f"{retval}"
-            )
-            await ctx.send(embed=embedvc)
-        else:
-            embedvc = discord.Embed(
-                colour= 1646116,
-                description = 'Não existe músicas na fila no momento.'
-            )
-            await ctx.send(embed=embedvc)
+        if not self.vc or not self.vc.is_playing():
+            if await self.connect_to_voice(ctx):
+                await self.play_next(ctx)
 
-    @commands.command(name="skip", help="Pula a atual música que está tocando.",aliases=['pular'])
-    @commands.has_permissions(manage_channels=True)
-    async def skip(self, ctx):
-        if self.vc != "" and self.vc:
+    @commands.command()
+    async def pause(self, ctx):
+        if self.vc and self.vc.is_playing():
+            self.vc.pause()
+            await ctx.send("⏸️ Música pausada.")
+
+    @commands.command()
+    async def stop(self, ctx):
+        if self.vc and self.vc.is_playing():
             self.vc.stop()
-            #try to play next in the queue if it exists
-            await self.play_music()
-            embedvc = discord.Embed(
-                colour= 1646116,#ggrey
-                description = f"Você pulou a música."
-            )
-            await ctx.send(embed=embedvc)
+            await ctx.send("⏹️ Reprodução parada.")
 
-    @skip.error #Erros para kick
-    async def skip_error(self,ctx,error):
-        if isinstance(error, commands.MissingPermissions):
-            embedvc = discord.Embed(
-                colour= 12255232,
-                description = f"Você precisa da permissão **Gerenciar canais** para pular músicas."
-            )
-            await ctx.send(embed=embedvc)     
+    @commands.command(name="list")
+    async def list_queue(self, ctx):
+        if not self.queue:
+            await ctx.send("📭 Fila vazia.")
+            return
+
+        msg = "**🎵 Fila de músicas:**\n"
+        for i, song in enumerate(self.queue):
+            pointer = "➡️" if i == self.current_index else "   "
+            msg += f"{pointer} `{i+1}.` {song['title']}\n"
+        await ctx.send(msg)
+
+    @commands.command()
+    async def next(self, ctx, index: int = None):
+        if index is not None:
+            if 1 <= index <= len(self.queue):
+                self.current_index = index - 1
+                await ctx.send(f"⏭️ Pulando para a música #{index}: **{self.queue[self.current_index]['title']}**")
+            else:
+                await ctx.send("❌ Índice inválido na fila.")
+                return
         else:
-            raise error
+            await ctx.send("⏭️ Pulando para a próxima música.")
 
-def setup(client):
-    client.add_cog(music(client))
+        if self.vc and self.vc.is_playing():
+            self.vc.stop()
+        else:
+            await self.play_next(ctx)
+
+    @commands.command()
+    async def testlocal(self, ctx):
+        if not ctx.author.voice:
+            await ctx.send("⚠️ Você precisa estar em um canal de voz.")
+            return
+
+        voice_channel = ctx.author.voice.channel
+        try:
+            if self.vc is None or not self.vc.is_connected():
+                print("🔌 Conectando ao canal de voz...")
+                self.vc = await voice_channel.connect()
+            elif self.vc.channel != voice_channel:
+                print("🔁 Movendo para o canal do autor...")
+                await self.vc.move_to(voice_channel)
+        except Exception as e:
+            print(f"[Erro ao conectar ou mover]: {e}")
+            await ctx.send(f"[Erro ao conectar ou mover]: {e}")
+            return
+
+        mp3_path = "teste.mp3"
+        if not os.path.exists(mp3_path):
+            await ctx.send(f"❌ Arquivo `{mp3_path}` não encontrado.")
+            return
+
+        try:
+            if self.vc.is_playing():
+                self.vc.stop()
+            source = discord.FFmpegPCMAudio(mp3_path)
+            self.vc.play(source)
+            await ctx.send("▶️ Tocando `teste.mp3` no canal de voz.")
+        except Exception as e:
+            print(f"[Erro ao tocar]: {e}")
+            await ctx.send(f"❌ Erro ao tentar tocar: {e}")
+
+    @commands.command()
+    async def testlocalpc(self, ctx):
+        os.system('start "" "ffplay" -nodisp -autoexit "teste.mp3"')
+        await ctx.send("▶️ Tocando `teste.mp3` no seu PC local (ffplay).")
+
+async def setup(bot):
+    await bot.add_cog(Music(bot))
