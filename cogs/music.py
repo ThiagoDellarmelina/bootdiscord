@@ -11,19 +11,27 @@ class Music(commands.Cog):
         self.queue = []
         self.current_index = 0
 
-        self.YDL_OPTIONS = {'format': 'bestaudio'}
+        self.COOKIE_FILE = os.getenv("COOKIES_FILE", "cookies.txt")
+
+        self.YDL_OPTIONS = {
+            'format': 'bestaudio',
+            'cookiefile': self.COOKIE_FILE
+        }
+
         self.FFMPEG_OPTIONS = {
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
             'options': '-vn'
         }
 
     def search_yt(self, query):
+        print(f"[🔍 Buscando]: {query}")
         with YoutubeDL(self.YDL_OPTIONS) as ydl:
             try:
                 info = ydl.extract_info(f"ytsearch:{query}", download=False)['entries'][0]
+                print(f"[✅ Encontrado]: {info['title']}")
                 return {'title': info['title'], 'source': info['url']}
             except Exception as e:
-                print(f"[Erro na busca]: {e}")
+                print(f"[❌ Erro na busca]: {e}")
                 return None
 
     async def connect_to_voice(self, ctx):
@@ -32,14 +40,17 @@ class Music(commands.Cog):
             return False
         channel = ctx.author.voice.channel
         if self.vc is None:
+            print("🔌 Conectando ao canal de voz...")
             self.vc = await channel.connect()
         elif self.vc.channel != channel:
+            print("🔁 Movendo para o canal do autor...")
             await self.vc.move_to(channel)
         return True
 
     async def play_next(self, ctx=None):
         if self.current_index < len(self.queue):
             song = self.queue[self.current_index]
+            print(f"[🎧 Tocando]: {song['title']}")
             source = discord.FFmpegPCMAudio(song['source'], **self.FFMPEG_OPTIONS)
             self.vc.play(
                 source,
@@ -51,6 +62,7 @@ class Music(commands.Cog):
         else:
             if ctx:
                 await ctx.send("📭 Fila finalizada.")
+            print("[🛑 Fila de músicas encerrada]")
 
     @commands.command()
     async def play(self, ctx, *, query):
